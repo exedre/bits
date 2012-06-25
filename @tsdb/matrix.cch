@@ -1,0 +1,368 @@
+// -*- mode: c++ -*-
+
+
+namespace bits {
+
+  template<class _T>  
+  _T subst_nan<_T>::operator()(const _T& _X, const _T& _Y) const
+  { 
+	cerr << _X << "->" << _Y << endl;
+	return (isnan(_X) ? _Y : _X); 
+  }
+
+  inline
+  //  template<>
+  column subst_nan<column>::operator()(const column& _X, const column& _Y) const
+  {
+	column c=_X;
+	if ( e==0 )
+	  {
+		transform(_X.begin(), _X.end(), _Y.begin(), c.begin(), subst_nan<double>());
+	  }
+	else
+	  { 
+		transform(_X.begin()+b, _X.begin()+e, _Y.begin(), c.begin()+b, subst_nan<double>());
+	  }
+	return c;
+  }
+
+  // ------------------------------------------------------------ COLUMN
+
+  inline
+  column::column(const int& sz) : vector<double>(sz)  {}
+  
+  inline
+  column::column(const int& sz, const double& d) : vector<double>(sz) 
+  {
+	for_each(this->begin(), this->end(),  uniform(d));
+  }
+
+
+
+  inline  column& column::extract(column& c, const int b, const int e) const
+  {
+	c.clear();
+	c.resize(e-b);
+	copy(this->begin()+b,this->begin()+e,c.begin());
+	return c;
+  }
+
+  // COLUMN <op> COLUMN
+  inline column& column::operator +=(const column& c)
+  {
+	if ( size() != c.size() ) throw size_mismatch();	
+	transform(c.begin(), c.end(), (*this).begin(), (*this).begin(), plus<double>());
+	return *this;
+  }
+  inline column& column::operator -=(const column& c)
+  {
+	if ( size() != c.size() ) throw size_mismatch();	
+	transform(c.begin(), c.end(), (*this).begin(), (*this).begin(), minus<double>());
+	return *this;
+  }
+  inline column& column::operator *=(const column& c)
+  {
+	cerr << "operator*=" << size() << " | " << c.size() << endl;
+	if ( size() != c.size() ) throw size_mismatch();  
+	transform(c.begin(), c.end(), (*this).begin(), (*this).begin(), multiplies<double>());
+	cerr << c << endl;
+	return *this;
+  }
+
+  inline column& column::operator /=(const column& c)
+  {
+	if ( size() != c.size() ) throw size_mismatch();	
+	transform(c.begin(), c.end(), (*this).begin(), (*this).begin(), divides<double>());
+	return *this;
+  }
+
+  // COLUMN <op> DOUBLE
+  inline column& column::operator  =(const double& d)
+  {
+	transform((*this).begin(), (*this).end(), (*this).begin(), bind2nd( multiplies<double>(), 0.0) );
+	transform((*this).begin(), (*this).end(), (*this).begin(), bind2nd( plus<double>(), d) );
+	return *this;
+  }
+//   inline column& column::operator =(const double& d)
+//   {
+// 	generate_n(this->begin(),this->size(), linear(d,0.0)); // Generate random vector
+// 	return *this;
+//   }
+
+
+  inline column& column::operator +=(const double& d)
+  {
+	transform((*this).begin(), (*this).end(), (*this).begin(), bind2nd( plus<double>(), d) );
+	return *this;
+  }
+  inline column& column::operator -=(const double& d)
+  {
+	transform((*this).begin(), (*this).end(), (*this).begin(), bind2nd( minus<double>(), d) );
+	return *this;
+  }
+  inline column& column::operator *=(const double& d)
+  {
+	transform((*this).begin(), (*this).end(), (*this).begin(), bind2nd( multiplies<double>(), d) );
+	return *this;
+  }
+
+  inline column& column::operator /=(const double& d)
+  {
+	transform((*this).begin(), (*this).end(), (*this).begin(), bind2nd( divides<double>(), d) );
+	return *this;
+  }
+
+  // ------------------------------------------------------------ MATRIX
+
+  inline  matrix& matrix::append_missing(const long nx)
+  {
+	cerr << "appending " << nx << " missing " << endl;
+
+	matrix::iterator i = this->begin();
+	const matrix::iterator x=this->end();
+
+	while ( i!=x )
+	  {
+		for(int j=0;j<nx;j++)
+		  (*i).push_back( NAN );
+		i++;
+	  }
+	return *this;
+	
+  }
+
+  inline  matrix& matrix::prepend_missing(const long nx)
+  {
+	cerr << "prepending " << nx << " missing " << endl;
+
+	matrix::iterator i = this->begin();
+	const matrix::iterator x=this->end();
+	
+	while ( i!=x )
+	  {
+		for(int j=0;j<nx;j++)
+		  (*i).insert( (*i).begin(), NAN );
+		i++;
+	  }
+	return *this;
+	
+  }
+
+  inline  matrix& matrix::append(const matrix& m)
+  {
+	cerr << "appending " << m.nobs() << " to " << nobs() << endl;
+	if (m.size() != size())
+	  throw size_mismatch();
+	
+	matrix* n=const_cast<matrix*>(&m);
+	matrix::iterator i = n->begin();
+	const matrix::iterator x=n->end();
+	vector<column>::iterator j=(*this).begin();
+
+	while ( i!=x )
+	  {
+		(*j).insert((*j).end(),(*i).begin(),(*i).end());
+		i++;
+		j++;
+	  }
+
+	return *this;
+		
+  }
+
+  inline  matrix& matrix::prepend(const matrix& m)
+  {
+	cerr << "prepending " << m.nobs() << " to " << nobs() << endl;
+	if (m.size() != size())
+	  throw size_mismatch();
+	
+	matrix* n=const_cast<matrix*>(&m);
+	matrix::iterator i = n->begin();
+	const matrix::iterator x=n->end();
+	vector<column>::iterator j=(*this).begin();
+	
+	while ( i!=x )
+	  {
+		(*j).insert((*j).begin(),(*i).begin(),(*i).end());
+		i++;
+		j++;
+	  }
+	return *this;
+		
+  }
+
+  inline  long matrix::nobs() const {
+	if ( size()==0 ) return 0;
+	return (*this)[0].size();
+  }
+
+
+  inline  matrix& matrix::merge  (const matrix& m, const int b, const int e) 
+  {
+	if ( size() < m.size() ) throw size_mismatch();	
+	transform ((*this).begin(), (*this).end(), m.begin(), (*this).begin(), subst_nan<column>(b,e));
+	return *this;
+  }
+
+  inline  matrix matrix::operator  ()(const unsigned int which) const
+  {
+	if ( which > size() ) throw size_mismatch();	
+	matrix m;
+	m.push_back((*this)[which]);
+	return m;
+  }
+
+  inline  matrix matrix::operator  ()(const vector<unsigned int> which) 
+  {
+	matrix m;
+	vector<unsigned int>::const_iterator i=which.begin();
+	vector<unsigned int>::const_iterator e=which.end();
+
+	while( i!=e ) {
+	  if ( *i > size() ) throw size_mismatch();	
+	  m.push_back((*i++));
+	}
+	return m;
+  }
+
+  inline  matrix& matrix::extract(matrix& m, const int b, const int e) const
+  {
+	m=*this;
+	vector<column>::iterator i=m.begin();
+	vector<column>::const_iterator j=(*this).begin();
+	vector<column>::iterator x=m.end();
+	while ( i!=x )
+	  {
+		(*j).extract(*i,b,e);
+		i++;
+		j++;
+	  }
+	return m;
+  }
+
+  inline  matrix& matrix::operator<<(const matrix& m)
+  {	
+	// I use this trick to pass over an invalid const conversion
+	// I've not understand
+	matrix* n=const_cast<matrix*>(&m);
+	matrix::iterator i = n->begin();
+	const matrix::iterator x=n->end();
+	
+	while ( i!=x )
+	  {
+		push_back(*i);
+		i++;
+	  }
+	return *this;
+  }
+
+  inline  matrix& matrix::operator>>(matrix& m)
+  {	
+	cerr << "m::operator>>" << endl;
+	// I use this trick to pass over an invalid const conversion
+	// I've not understand
+	matrix* n=const_cast<matrix*>(&m);
+	matrix::iterator i = this->begin();
+	const matrix::iterator x=this->end();
+	
+	while ( i!=x )
+	  {
+		n->insert(n->begin(),*i);
+		i++;
+	  }
+	return *this;
+  }
+
+  // MATRIX <op> MATRIX
+#define DEFINE_MATRIX_MATRIX_OP(Op, Func) inline matrix& matrix::Op(const matrix& c) { \
+	if ( size() != c.size() ) throw size_mismatch(); transform(c.begin(), c.end(), (*this).begin(), (*this).begin(), Func<column>()); return *this;  }
+
+  DEFINE_MATRIX_MATRIX_OP(operator +=, plus);
+  DEFINE_MATRIX_MATRIX_OP(operator -=, minus);
+  DEFINE_MATRIX_MATRIX_OP(operator *=, multiplies);
+  DEFINE_MATRIX_MATRIX_OP(operator /=, divides);
+
+  // MATRIX <op> COLUMN
+#define DEFINE_MATRIX_COLUMN_OP(Op, Func) inline matrix& matrix::Op(const column& c) { \
+	transform((*this).begin(), (*this).end(), (*this).begin(), bind2nd( Func<column>(), c) ); return *this;  }
+
+  DEFINE_MATRIX_COLUMN_OP(operator +=, plus);
+  DEFINE_MATRIX_COLUMN_OP(operator -=, minus);
+  DEFINE_MATRIX_COLUMN_OP(operator *=, multiplies);
+  DEFINE_MATRIX_COLUMN_OP(operator /=, divides);
+
+  // MATRIX <op> DOUBLE
+#define DEFINE_MATRIX_DOUBLE_OP(Op, Func) inline matrix& matrix::Op(const double& d) { \
+	column D((*this)[0].size(),d); transform((*this).begin(), (*this).end(), (*this).begin(), bind2nd( Func<column>(), D) ); return *this;  }
+  
+  DEFINE_MATRIX_DOUBLE_OP(operator +=, plus);
+  DEFINE_MATRIX_DOUBLE_OP(operator -=, minus);
+  DEFINE_MATRIX_DOUBLE_OP(operator *=, multiplies);
+  DEFINE_MATRIX_DOUBLE_OP(operator /=, divides);
+
+  inline matrix& matrix::operator=(const double& d) {
+	cerr << "matrix:opertor=" << d << endl;
+	column Z((*this)[0].size(),0); 
+	transform((*this).begin(), (*this).end(), (*this).begin(), bind2nd( multiplies<column>(), Z) ); 
+	cerr << "matrix:opertor=/2"  << endl;	
+	column D((*this)[0].size(),d); 
+	transform((*this).begin(), (*this).end(), (*this).begin(), bind2nd( plus<column>(), D) ); 
+	return *this;  
+  }
+
+
+
+  inline  ostream& operator << (ostream& o, const matrix& m)
+  {
+	int nseries=m.size();
+	
+	if (nseries==0)
+	  return o;
+
+	int nobs=m[0].size();
+
+	if (nobs==0)
+	  return o;
+
+	o << "Matrix(" << nseries << " x " << nobs << "): " << endl ;
+
+	o << setw(5) << " " << " " << " : " ;
+	for(int s=0; s<nseries; s++) {
+	  o  << setw(12) << right << s << " ";
+	}
+	o << endl;
+	for( int i=0; i<nobs; i++) {
+	  o << setw(5) << i << " " << " : " ;
+	  for(int s=0; s<nseries; s++) {
+		o  << setw(12) << right << m[s][i] << " ";
+	  }
+	  o << endl ;
+	}
+
+	return o;
+
+  }
+
+  inline  ostream& operator << (ostream& o, const column& c)
+  {
+	int nobs=c.size();
+
+	if (nobs==0)
+	  return o;
+
+	o << "Column(" << nobs << "): " << endl ;
+
+	for( int i=0; i<nobs;) {
+	  o << setw(5) << i << " " << " : " ;
+	  for(int j=0; i<nobs and j<10; j++,i++) {
+		o  << setw(12) << right << c[i] << " ";
+	  }
+	  o << endl ;
+	}
+
+	return o;
+
+  }
+
+}
+
