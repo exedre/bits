@@ -13,7 +13,7 @@ function [anno, settimana,giorno] =  date2weeks(date,varargin)
 %   BITS -  Banca d'Italia Time Series 
 %   Copyright 2005-2012 Banca d'Italia - Area Ricerca Economica e Relazioni Internazionali
 %
-%   Author: Emmanuele Somma (emmanuele.somma@bancaditalia.it)
+%   Author: Emmanuele Somma (emmanuele_DOT_somma_AT_bancaditalia_DOT_it)
 %           Area Ricerca Economica e Relazioni Internazionali 
 %           Banca d'Italia
 %

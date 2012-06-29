@@ -1,8 +1,8 @@
 % Banca d'Italia Time Series Toolbox for Matlab
 % Version 2.0, 15-Sep-2007
 % 
-% Comments and suggestions to emmanuele.somma@bancaditalia.it
-%                          or giovanni.veronese@bancaditalia.it
+% Comments and suggestions to emmanuele_DOT_somma_AT_bancaditalia_DOT_it
+%                          or giovanni_DOT_veronese_AT_bancaditalia_DOT_it
 %
 % Base functions.
 % tsmat         - object constructor

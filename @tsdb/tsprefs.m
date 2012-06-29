@@ -13,7 +13,7 @@ function db = tsprefs(db,varargin)
 %
 %
 %   Copyright 2005-2012 Emmanuele Somma    (Servizio Studi Banca d'Italia)
-%                       emmanuele.somma@bancaditalia.it - esomma@ieee.org
+%                       emmanuele_DOT_somma_AT_bancaditalia_DOT_it - esomma@ieee.org
 %
   if nargin==1
      return
